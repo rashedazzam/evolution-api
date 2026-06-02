@@ -514,11 +514,14 @@ export class BaileysStartupService extends ChannelStartupService {
         ...this.stateConnection,
       });
 
-      // Resync label app-state so all labeled chats populate Chat.labels in DB
+      // Resync all app state patches so labeled chats populate Chat.labels in DB
       setTimeout(async () => {
         try {
-          await (this.client as any).resyncAppState(['label_jid', 'label_edit'], false);
-          this.logger.info('Label app state resync requested');
+          await (this.client as any).resyncAppState(
+            ['critical_block', 'critical_unblock_low', 'regular_high', 'regular_low', 'regular'],
+            false,
+          );
+          this.logger.info('Label app state resync completed');
         } catch (error) {
           this.logger.warn('Failed to resync label app state: ' + error);
         }
