@@ -517,7 +517,7 @@ export class BaileysStartupService extends ChannelStartupService {
       // Resync label app-state so all labeled chats populate Chat.labels in DB
       setTimeout(async () => {
         try {
-          await this.client.resyncAppState(['label_jid', 'label_edit']);
+          await (this.client as any).resyncAppState(['label_jid', 'label_edit'], false);
           this.logger.info('Label app state resync requested');
         } catch (error) {
           this.logger.warn('Failed to resync label app state: ' + error);
@@ -984,7 +984,7 @@ export class BaileysStartupService extends ChannelStartupService {
           }
         }
 
-        const chatsRaw: { remoteJid: string; instanceId: string; name?: string; labels?: any }[] = [];
+        const chatsRaw: { remoteJid: string; instanceId: string; name?: string }[] = [];
         const chatsRepository = new Set(
           (await this.prismaRepository.chat.findMany({ where: { instanceId: this.instanceId } })).map(
             (chat) => chat.remoteJid,
@@ -993,21 +993,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
         for (const chat of chats) {
           if (chatsRepository?.has(chat.id)) {
-            // Update labels even for existing chats if Baileys provides them
-            if (chat.labels && (chat.labels as string[]).length > 0) {
-              for (const labelId of chat.labels as string[]) {
-                await this.addLabel(String(labelId), this.instanceId, chat.id);
-              }
-            }
             continue;
           }
 
-          chatsRaw.push({
-            remoteJid: chat.id,
-            instanceId: this.instanceId,
-            name: chat.name,
-            labels: chat.labels ? (chat.labels as string[]).map(String) : [],
-          });
+          chatsRaw.push({ remoteJid: chat.id, instanceId: this.instanceId, name: chat.name });
         }
 
         this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
